@@ -1,0 +1,63 @@
+---
+- name: Setup MERN Web Server
+  hosts: localhost
+  become: yes
+
+  tasks:
+    - name: Install prerequisites
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - curl
+        - gnupg
+        - build-essential
+
+    - name: Add NodeSource APT key
+      command: curl -fsSL https://deb.nodesource.com/gpgkey/nodesource.gpg.key | sudo apt-key add -
+
+    - name: Add NodeSource repository
+      apt_repository:
+        repo: "deb https://deb.nodesource.com/node_18.x {{ ansible_distribution_release }} main"
+        state: present
+        update_cache: yes
+
+    - name: Install Node.js (using NodeSource)
+      apt:
+        name: nodejs
+        state: present
+
+    - name: Create web directory
+      file:
+        path: /var/www/mern-app
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: "{{ ansible_user }}"
+
+    - name: Clone MERN app repository
+      git:
+        repo: 'https://github.com/UnpredictablePrashant/TravelMemory.git'
+        dest: /var/www/mern-app
+        version: main
+
+    - name: Install dependencies for frontend
+      command: npm install
+      args:
+        chdir: /var/www/mern-app/frontend
+
+    - name: Install dependencies for backend
+      command: npm install
+      args:
+        chdir: /var/www/mern-app/backend
+
+    - name: Start the frontend service
+      command: npm start
+      args:
+        chdir: /var/www/mern-app/frontend
+        _uses_shell: true
+
+    - name: Start the backend service
+      command: npm start
+      args:
+        chdir: /var/www/mern-app/backend
+        _uses_shell: true
